@@ -1,5 +1,5 @@
-package GUIS;
 
+package GUIS;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -42,6 +42,8 @@ public class DatabaseConnection {
         }
     }
 
+    // Métodos para Departamentos
+
     public void insertDepartment(String id, String name, String phone, String fax) {
         String query = "INSERT INTO departamentos (IdDepartamento, Nombre, Telefono, Fax) VALUES (?, ?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(query)) {
@@ -67,13 +69,14 @@ public class DatabaseConnection {
         }
     }
 
-    public void updateDepartment(String id, String name, String phone, String fax) {
-        String query = "UPDATE departamentos SET Nombre = ?, Telefono = ?, Fax = ? WHERE IdDepartamento = ?";
+    public void updateDepartment(String oldId, String newId, String name, String phone, String fax) {
+        String query = "UPDATE departamentos SET IdDepartamento = ?, Nombre = ?, Telefono = ?, Fax = ? WHERE IdDepartamento = ?";
         try (PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setString(1, name);
-            statement.setString(2, phone);
-            statement.setString(3, fax);
-            statement.setString(4, id);
+            statement.setString(1, newId); // Usar el nuevo ID (puede ser el mismo que el antiguo)
+            statement.setString(2, name);
+            statement.setString(3, phone);
+            statement.setString(4, fax);
+            statement.setString(5, oldId); // Buscar por el ID antiguo en la base de datos
             statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -99,15 +102,28 @@ public class DatabaseConnection {
         }
         return departments;
     }
-    
-    
+
+    public boolean departmentExists(String idDepartamento) {
+        String query = "SELECT COUNT(*) FROM departamentos WHERE IdDepartamento = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, idDepartamento);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error al verificar si el departamento existe.");
+        }
+        return false;
+    }
+
     // Métodos para Proyectos
 
-    
-    
     public void insertProject(String id, String name, String startDate, String endDate, String deptId) {
         String query = "INSERT INTO proyectos (IdProyecto, Nombre, FechaInicio, FechaFin, IdDepartamento) VALUES (?, ?, ?, ?, ?)";
-        try ( PreparedStatement statement = connection.prepareStatement(query)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, id);
             statement.setString(2, name);
             statement.setString(3, startDate);
@@ -122,7 +138,7 @@ public class DatabaseConnection {
 
     public void deleteProject(String id) {
         String query = "DELETE FROM proyectos WHERE IdProyecto = ?";
-        try ( PreparedStatement statement = connection.prepareStatement(query)) {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, id);
             statement.executeUpdate();
         } catch (SQLException e) {
@@ -131,24 +147,26 @@ public class DatabaseConnection {
         }
     }
 
-public void updateProject(String idProyecto, String nombre, String fechaInicio, String fechaFin, String idDepartamento) {
-    String query = "UPDATE proyectos SET Nombre=?, FechaInicio=?, FechaFin=?, IdDepartamento=? WHERE IdProyecto=?";
-    try (PreparedStatement statement = connection.prepareStatement(query)) {
-        statement.setString(1, nombre);
-        statement.setDate(2, Date.valueOf(fechaInicio));
-        statement.setDate(3, Date.valueOf(fechaFin));
-        statement.setString(4, idDepartamento);
-        statement.setString(5, idProyecto);
-        statement.executeUpdate();
-    } catch (SQLException e) {
-        e.printStackTrace();
+    public void updateProject(String idProyecto, String nombre, String fechaInicio, String fechaFin, String idDepartamento) {
+        String query = "UPDATE proyectos SET Nombre=?, FechaInicio=?, FechaFin=?, IdDepartamento=? WHERE IdProyecto=?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, nombre);
+            statement.setDate(2, Date.valueOf(fechaInicio));
+            statement.setDate(3, Date.valueOf(fechaFin));
+            statement.setString(4, idDepartamento);
+            statement.setString(5, idProyecto);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error al actualizar proyecto.");
+        }
     }
-}
 
     public List<String[]> getProjects() {
         List<String[]> projects = new ArrayList<>();
         String query = "SELECT * FROM proyectos";
-        try ( PreparedStatement statement = connection.prepareStatement(query);  ResultSet resultSet = statement.executeQuery()) {
+        try (PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 String id = resultSet.getString("IdProyecto");
                 String name = resultSet.getString("Nombre");
@@ -160,6 +178,40 @@ public void updateProject(String idProyecto, String nombre, String fechaInicio, 
         } catch (SQLException e) {
             e.printStackTrace();
             System.err.println("Error al obtener proyectos.");
+        }
+        return projects;
+    }
+
+    public boolean projectExists(String idProyecto) {
+        String query = "SELECT COUNT(*) FROM proyectos WHERE IdProyecto = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, idProyecto);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error al verificar si el proyecto existe.");
+        }
+        return false;
+    }
+    
+    public List<String> getProjectsByDepartment(String departmentId) {
+        List<String> projects = new ArrayList<>();
+        String query = "SELECT IdProyecto FROM proyectos WHERE IdDepartamento = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, departmentId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    String projectId = resultSet.getString("IdProyecto");
+                    projects.add(projectId);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error al obtener proyectos por departamento.");
         }
         return projects;
     }

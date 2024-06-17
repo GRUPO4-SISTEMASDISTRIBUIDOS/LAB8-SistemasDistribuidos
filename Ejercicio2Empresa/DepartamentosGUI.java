@@ -160,9 +160,13 @@ public class DepartamentosGUI extends JFrame {
         String fax = txtFax.getText();
 
         if (!id.isEmpty() && !name.isEmpty() && !phone.isEmpty() && !fax.isEmpty()) {
-            tableModel.addRow(new Object[]{id, name, phone, fax});
-            dbConnection.insertDepartment(id, name, phone, fax); // Guardar en la base de datos
-            clearFields(); // Limpiar campos después de guardar
+            if (dbConnection.departmentExists(id)) {
+                JOptionPane.showMessageDialog(this, "Ya existe un departamento con ese ID.", "Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                dbConnection.insertDepartment(id, name, phone, fax); // Guardar en la base de datos
+                tableModel.addRow(new Object[]{id, name, phone, fax});
+                clearFields(); // Limpiar campos después de guardar
+            }
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, complete todos los campos.");
         }
@@ -172,9 +176,22 @@ public class DepartamentosGUI extends JFrame {
         int selectedRow = table.getSelectedRow();
         if (selectedRow >= 0) {
             String id = tableModel.getValueAt(selectedRow, 0).toString();
-            tableModel.removeRow(selectedRow);
-            dbConnection.deleteDepartment(id); // Eliminar de la base de datos
-            clearFields(); // Limpiar campos después de eliminar
+
+            // Verificar si hay proyectos asociados
+            List<String> projects = dbConnection.getProjectsByDepartment(id);
+            if (!projects.isEmpty()) {
+                // Mostrar proyectos asociados en un JOptionPane
+                StringBuilder message = new StringBuilder("No es posible eliminar el departamento porque tiene proyectos asociados:\nIdProyectos Asociados:\n");
+                for (String projectId : projects) {
+                    message.append("- ").append(projectId).append("\n");
+                }
+                JOptionPane.showMessageDialog(this, message.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                // Si no hay proyectos asociados, proceder con la eliminación
+                tableModel.removeRow(selectedRow);
+                dbConnection.deleteDepartment(id); // Eliminar de la base de datos
+                clearFields(); // Limpiar campos después de eliminar
+            }
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, seleccione un departamento para eliminar.");
         }
@@ -183,16 +200,37 @@ public class DepartamentosGUI extends JFrame {
     private void updateDepartment() {
         int selectedRow = table.getSelectedRow();
         if (selectedRow >= 0) {
-            String id = txtId.getText();
+            String oldId = tableModel.getValueAt(selectedRow, 0).toString(); // Obtener el ID antiguo
+            String newId = txtId.getText(); // Nuevo ID (si se ha modificado)
             String name = txtName.getText();
             String phone = txtPhone.getText();
             String fax = txtFax.getText();
 
-            if (!id.isEmpty() && !name.isEmpty() && !phone.isEmpty() && !fax.isEmpty()) {
+            if (!oldId.isEmpty() && !newId.isEmpty() && !name.isEmpty() && !phone.isEmpty() && !fax.isEmpty()) {
+                // Verificar si el nuevo ID es único antes de actualizar
+                if (!newId.equals(oldId) && dbConnection.departmentExists(newId)) {
+                    JOptionPane.showMessageDialog(this, "Ya existe un departamento con ese ID.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return; // Salir del método si el nuevo ID no es único
+                }
+                // Verificar si hay proyectos asociados
+                
+                List<String> projects = dbConnection.getProjectsByDepartment(oldId);
+                if (!projects.isEmpty()) {
+                    // Mostrar proyectos asociados en un JOptionPane
+                    StringBuilder message = new StringBuilder("No es posible Actualizar el departamento porque tiene proyectos asociados:\nIdProyectos Asociados:\n");
+                    for (String projectId : projects) {
+                        message.append("- ").append(projectId).append("\n");
+                    }
+                    JOptionPane.showMessageDialog(this, message.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                    return; // Salir del método si el nuevo ID no es único
+                }
+                
                 tableModel.setValueAt(name, selectedRow, 1);
                 tableModel.setValueAt(phone, selectedRow, 2);
                 tableModel.setValueAt(fax, selectedRow, 3);
-                dbConnection.updateDepartment(id, name, phone, fax); // Actualizar en la base de datos
+
+                // Actualizar en la base de datos con el ID antiguo y nuevo (si cambió)
+                dbConnection.updateDepartment(oldId, newId, name, phone, fax); 
                 clearFields(); // Limpiar campos después de actualizar
             } else {
                 JOptionPane.showMessageDialog(this, "Por favor, complete todos los campos.");

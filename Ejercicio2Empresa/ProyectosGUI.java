@@ -7,11 +7,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class ProyectosGUI extends JFrame {
 
-    private JTextField txtIdProyecto, txtNombre, txtFechaInicio, txtFechaFin, txtIdDepartamento;
+    private JTextField txtIdProyecto, txtNombre, txtFechaInicio, txtFechaFin;
+    private JComboBox<String> cmbIdDepartamento;
     private JButton btnNew, btnSave, btnDelete, btnUpdate;
     private JTable table;
     private DefaultTableModel tableModel;
@@ -69,8 +73,9 @@ public class ProyectosGUI extends JFrame {
         inputPanel.add(txtFechaFin);
 
         inputPanel.add(new JLabel("Id del Departamento:"));
-        txtIdDepartamento = new JTextField(10);
-        inputPanel.add(txtIdDepartamento);
+        cmbIdDepartamento = new JComboBox<>();
+        cargarDepartamentos(); // Cargar los departamentos en el JComboBox
+        inputPanel.add(cmbIdDepartamento);
 
         add(inputPanel, BorderLayout.CENTER); // Añadir el panel de entrada al centro de la ventana
     }
@@ -140,7 +145,7 @@ public class ProyectosGUI extends JFrame {
                     txtNombre.setText(tableModel.getValueAt(selectedRow, 1).toString());
                     txtFechaInicio.setText(tableModel.getValueAt(selectedRow, 2).toString());
                     txtFechaFin.setText(tableModel.getValueAt(selectedRow, 3).toString());
-                    txtIdDepartamento.setText(tableModel.getValueAt(selectedRow, 4).toString());
+                    cmbIdDepartamento.setSelectedItem(tableModel.getValueAt(selectedRow, 4).toString());
                 }
             }
         });
@@ -148,8 +153,16 @@ public class ProyectosGUI extends JFrame {
 
     private void cargarProyectos() {
         List<String[]> proyectos = dbConnection.getProjects();
+        tableModel.setRowCount(0); // Limpiar la tabla antes de cargar los datos
         for (String[] proyecto : proyectos) {
             tableModel.addRow(proyecto);
+        }
+    }
+
+    private void cargarDepartamentos() {
+        List<String[]> departamentos = dbConnection.getDepartments();
+        for (String[] departamento : departamentos) {
+            cmbIdDepartamento.addItem(departamento[0]); // Añadir solo el IdDepartamento al JComboBox
         }
     }
 
@@ -158,7 +171,7 @@ public class ProyectosGUI extends JFrame {
         txtNombre.setText("");
         txtFechaInicio.setText("");
         txtFechaFin.setText("");
-        txtIdDepartamento.setText("");
+        cmbIdDepartamento.setSelectedIndex(-1); // Desseleccionar el JComboBox
         txtIdProyecto.requestFocus(); // Colocar el cursor en el campo de ID del proyecto
     }
 
@@ -167,14 +180,44 @@ public class ProyectosGUI extends JFrame {
         String nombre = txtNombre.getText();
         String fechaInicio = txtFechaInicio.getText();
         String fechaFin = txtFechaFin.getText();
-        String idDepartamento = txtIdDepartamento.getText();
+        String idDepartamento = (String) cmbIdDepartamento.getSelectedItem();
 
+        // Validar el formato de fecha
+        if (!isValidDateFormat(fechaInicio) || !isValidDateFormat(fechaFin)) {
+            JOptionPane.showMessageDialog(this, "Formato de fecha incorrecto. Utilice el formato: yyyy-MM-dd", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Convertir las fechas de inicio y fin a objetos LocalDate
+        LocalDate startDate = LocalDate.parse(fechaInicio, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate endDate = LocalDate.parse(fechaFin, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        // Verificar que la fecha de inicio sea menor que la fecha de fin
+        if (startDate.isAfter(endDate)) {
+            JOptionPane.showMessageDialog(this, "La fecha de inicio debe ser anterior a la fecha de fin", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        
+        
         if (!idProyecto.isEmpty() && !nombre.isEmpty()) {
-            tableModel.addRow(new Object[]{idProyecto, nombre, fechaInicio, fechaFin, idDepartamento});
-            dbConnection.insertProject(idProyecto, nombre, fechaInicio, fechaFin, idDepartamento); // Guardar en la base de datos
-            clearFields(); // Limpiar campos después de guardar
+            if (!dbConnection.projectExists(idProyecto)) {
+                tableModel.addRow(new Object[]{idProyecto, nombre, fechaInicio, fechaFin, idDepartamento});
+                dbConnection.insertProject(idProyecto, nombre, fechaInicio, fechaFin, idDepartamento); // Guardar en la base de datos
+                clearFields(); // Limpiar campos después de guardar
+            } else {
+                JOptionPane.showMessageDialog(this, "Ya existe un proyecto con este ID.", "ID duplicado", JOptionPane.WARNING_MESSAGE);
+            }
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, ingrese al menos el ID del Proyecto y el Nombre.", "Información requerida", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+    private boolean isValidDateFormat(String dateStr) {
+        try {
+            LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
         }
     }
 
@@ -197,7 +240,7 @@ public class ProyectosGUI extends JFrame {
             String nombre = txtNombre.getText();
             String fechaInicio = txtFechaInicio.getText();
             String fechaFin = txtFechaFin.getText();
-            String idDepartamento = txtIdDepartamento.getText();
+            String idDepartamento = (String) cmbIdDepartamento.getSelectedItem();
 
             if (!idProyecto.isEmpty() && !nombre.isEmpty() && !fechaInicio.isEmpty() && !fechaFin.isEmpty() && !idDepartamento.isEmpty()) {
                 dbConnection.updateProject(idProyecto, nombre, fechaInicio, fechaFin, idDepartamento);
