@@ -1,5 +1,3 @@
-package GUIS;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -31,7 +29,7 @@ public class DepartamentosGUI extends JFrame {
     private void configurarVentana() {
         setTitle("DEPARTAMENTOS");
         setSize(600, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null); // Centrar la ventana en la pantalla
         setLayout(new BorderLayout(10, 10)); // Establecer el diseño de la ventana
     }

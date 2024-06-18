@@ -16,7 +16,7 @@ public class Principal extends javax.swing.JFrame {
     ingBtn = new javax.swing.JButton();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
+    
     title.setBackground(new java.awt.Color(0, 0, 0));
 
     label1.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
@@ -84,7 +84,7 @@ public class Principal extends javax.swing.JFrame {
   }// </editor-fold>
 
   private void dptBtnActionPerformed(java.awt.event.ActionEvent evt) {
-    Ingeniero ventana = new Ingeniero();
+    DepartamentosGUI ventana = new DepartamentosGUI();
     ventana.setVisible(true);
   }
 

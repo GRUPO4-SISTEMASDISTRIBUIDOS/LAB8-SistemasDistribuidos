@@ -1,5 +1,3 @@
-package GUIS;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -35,7 +33,7 @@ public class ProyectosGUI extends JFrame {
     private void configurarVentana() {
         setTitle("PROYECTOS");
         setSize(800, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null); // Centrar la ventana en la pantalla
         setLayout(new BorderLayout(10, 10)); // Establecer el diseño de la ventana
     }
@@ -198,8 +196,7 @@ public class ProyectosGUI extends JFrame {
             return;
         }
         
-        
-        
+         
         if (!idProyecto.isEmpty() && !nombre.isEmpty()) {
             if (!dbConnection.projectExists(idProyecto)) {
                 tableModel.addRow(new Object[]{idProyecto, nombre, fechaInicio, fechaFin, idDepartamento});
